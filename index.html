@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Studio Arts — Faculty &amp; Areas</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:        #ffffff;
+    --bg2:       #f5f4f0;
+    --text:      #1a1a18;
+    --text2:     #6b6a64;
+    --text3:     #9c9a92;
+    --border:    rgba(0,0,0,0.12);
+    --tenure:    #534AB7;
+    --tenure-bg: #EEEDFE;
+    --teach:     #0F6E56;
+    --teach-bg:  #E1F5EE;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg:        #1c1c1a;
+      --bg2:       #252523;
+      --text:      #e8e6de;
+      --text2:     #9c9a92;
+      --text3:     #6b6a64;
+      --border:    rgba(255,255,255,0.1);
+      --tenure:    #9B94E8;
+      --tenure-bg: #2a2845;
+      --teach:     #3ecba0;
+      --teach-bg:  #0e2d24;
+    }
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 3rem;
+    min-height: 100%;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    max-width: 560px;
+  }
+
+  header h1 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: .01em;
+    color: var(--text);
+    margin-bottom: 0.3rem;
+  }
+
+  header p {
+    font-size: 0.8rem;
+    color: var(--text2);
+    line-height: 1.5;
+  }
+
+  .legend {
+    display: flex;
+    gap: 1.2rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 1rem;
+    font-size: 0.75rem;
+    color: var(--text2);
+  }
+
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .leg-swatch {
+    width: 13px;
+    height: 13px;
+    border-radius: 2px;
+    border: 1.5px solid #888;
+    flex-shrink: 0;
+  }
+
+  .leg-dot {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  #canvas-wrap {
+    width: 100%;
+    max-width: 680px;
+  }
+
+  canvas {
+    width: 100%;
+    display: block;
+    cursor: default;
+  }
+
+  #info {
+    text-align: center;
+    font-size: 0.78rem;
+    color: var(--text2);
+    min-height: 1.4rem;
+    margin-top: 0.6rem;
+    padding: 0 1rem;
+  }
+
+  #info strong {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  footer {
+    margin-top: 2.5rem;
+    font-size: 0.72rem;
+    color: var(--text3);
+    text-align: center;
+  }
+
+  footer a {
+    color: var(--text3);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Department of Studio Arts — University of Pittsburgh</h1>
+  <p>Faculty connections across teaching areas. Click any name or area to highlight.</p>
+</header>
+
+<div class="legend">
+  <div class="leg">
+    <div class="leg-swatch" style="background:#F1EFE8;border-color:#5F5E5A"></div>
+    Teaching area
+  </div>
+  <div class="leg">
+    <div class="leg-dot" style="background:var(--tenure)"></div>
+    Tenure-line
+  </div>
+  <div class="leg">
+    <div class="leg-dot" style="background:var(--teach)"></div>
+    Teaching track
+  </div>
+</div>
+
+<div id="canvas-wrap">
+  <canvas id="cv"></canvas>
+</div>
+
+<div id="info">Click a name or area to highlight connections</div>
+
+<footer>
+  <a href="https://www.studioarts.pitt.edu" target="_blank">studioarts.pitt.edu</a>
+</footer>
+
+<script>
+const DPR = window.devicePixelRatio || 1;
+
+const AREAS = [
+  { id:'vt',          label:'Vis. Thinking',  angle:  0, color:'#5F5E5A', fill:'#F1EFE8', textColor:'#3a3a38' },
+  { id:'digital',     label:'Digital',        angle: 45, color:'#534AB7', fill:'#EEEDFE', textColor:'#3C3489' },
+  { id:'sculpture',   label:'Sculpture',      angle: 90, color:'#854F0B', fill:'#FAEEDA', textColor:'#633806' },
+  { id:'printmaking', label:'Printmaking',    angle:135, color:'#993556', fill:'#FBEAF0', textColor:'#72243E' },
+  { id:'drawing',     label:'Drawing',        angle:180, color:'#3B6D11', fill:'#EAF3DE', textColor:'#27500A' },
+  { id:'photo',       label:'Photography',    angle:225, color:'#185FA5', fill:'#E6F1FB', textColor:'#0C447C' },
+  { id:'practical',   label:'Practical',      angle:270, color:'#1D9E75', fill:'#E1F5EE', textColor:'#085041' },
+  { id:'painting',    label:'Painting',       angle:315, color:'#D85A30', fill:'#FAECE7', textColor:'#993C1D' },
+];
+
+const FACULTY = [
+  { id:'henderson',   name:'Henderson',   rank:'tenure',   areas:['digital','photo','vt','practical'] },
+  { id:'batista',     name:'Batista',     rank:'tenure',   areas:['drawing'] },
+  { id:'catanese',    name:'Catanese',    rank:'teaching', areas:['photo','practical','drawing'] },
+  { id:'jenkins',     name:'Jenkins',     rank:'tenure',   areas:['sculpture','practical'] },
+  { id:'mobley',      name:'Mobley',      rank:'tenure',   areas:['digital','vt'] },
+  { id:'shekari',     name:'Shekari',     rank:'tenure',   areas:['painting','drawing','practical'] },
+  { id:'morrissey',   name:'Morrissey',   rank:'teaching', areas:['printmaking','drawing','vt','practical'] },
+  { id:'turri',       name:'Turri',       rank:'teaching', areas:['painting','drawing','practical'] },
+  { id:'piscitelli',  name:'Piscitelli',  rank:'teaching', areas:['sculpture','drawing','vt'] },
+
+  { id:'andrew',      name:'Andrew',      rank:'teaching', areas:['digital','vt'] },
+  { id:'bullock',     name:'Bullock',     rank:'teaching', areas:['sculpture'] },
+  { id:'perez',       name:'Perez',       rank:'teaching', areas:['sculpture','drawing','vt'] },
+  { id:'lemon',       name:'Lemon',       rank:'teaching', areas:['painting','drawing'] },
+];
+
+const areaMap = {};
+AREAS.forEach(a => areaMap[a.id] = a);
+
+const DEG = Math.PI / 180;
+const cv  = document.getElementById('cv');
+let W, H, CX, CY, SPOKE_R, FAC_R, AW, AH;
+
+function isDark() {
+  return window.matchMedia('(prefers-color-scheme:dark)').matches;
+}
+
+function rankColor(rank) {
+  return isDark()
+    ? (rank === 'tenure' ? '#9B94E8' : '#3ecba0')
+    : (rank === 'tenure' ? '#534AB7' : '#0F6E56');
+}
+
+function rankFill(rank) {
+  return isDark()
+    ? (rank === 'tenure' ? '#2a2845' : '#0e2d24')
+    : (rank === 'tenure' ? '#EEEDFE' : '#E1F5EE');
+}
+
+function areaFill(a) {
+  if (!isDark()) return a.fill;
+  return a.fill.replace(/^#/, '').match(/.{2}/g)
+    .map(c => Math.round(parseInt(c,16) * 0.25 + 20).toString(16).padStart(2,'0'))
+    .reduce((s,c) => s+c, '#');
+}
+
+function areaTextColor(a) {
+  return isDark() ? a.color : a.textColor;
+}
+
+function layout() {
+  const rect = document.getElementById('canvas-wrap').getBoundingClientRect();
+  W = rect.width;
+  H = W;
+  cv.style.width  = W + 'px';
+  cv.style.height = H + 'px';
+  cv.width  = W * DPR;
+  cv.height = H * DPR;
+
+  CX = W / 2; CY = H / 2;
+  SPOKE_R = W * 0.285;
+  FAC_R   = W * 0.054;
+  AW      = W * 0.135;
+  AH      = W * 0.068;
+
+  AREAS.forEach(a => {
+    const ang = a.angle * DEG;
+    a.x = CX + Math.cos(ang) * SPOKE_R;
+    a.y = CY + Math.sin(ang) * SPOKE_R;
+  });
+
+  const FAC_RING = W * 0.445;
+
+  const assigned = {};
+  FACULTY.forEach(f => {
+    const angles = f.areas.map(id => areaMap[id].angle);
+    let mean = angles.reduce((s, v) => s + v, 0) / angles.length;
+    if (f.areas.length > 1) {
+      const min = Math.min(...angles), max = Math.max(...angles);
+      if (max - min > 180) mean = ((min + max) / 2 + 180) % 360;
+    }
+    assigned[f.id] = { angle: (mean + 360) % 360 };
+  });
+
+  for (let iter = 0; iter < 200; iter++) {
+    FACULTY.forEach((f, i) => {
+      let push = 0;
+      FACULTY.forEach((g, j) => {
+        if (i === j) return;
+        let da = assigned[f.id].angle - assigned[g.id].angle;
+        while (da >  180) da -= 360;
+        while (da < -180) da += 360;
+        const minSep = (FAC_R * 2.7 / FAC_RING) / DEG;
+        if (Math.abs(da) < minSep)
+          push += (da < 0 ? -1 : 1) * (minSep - Math.abs(da)) * 0.5;
+      });
+      assigned[f.id].angle = (assigned[f.id].angle + push + 360) % 360;
+    });
+  }
+
+  FACULTY.forEach(f => {
+    const ang = assigned[f.id].angle * DEG;
+    f.x = CX + Math.cos(ang) * FAC_RING;
+    f.y = CY + Math.sin(ang) * FAC_RING;
+  });
+}
+
+let selected = null, hovering = null;
+
+function getHL(sel) {
+  if (!sel) return { areas: new Set(), facs: new Set() };
+  const areas = new Set(), facs = new Set();
+  if (sel.type === 'fac') {
+    facs.add(sel.id);
+    sel.node.areas.forEach(id => areas.add(id));
+  } else {
+    areas.add(sel.id);
+    FACULTY.forEach(f => { if (f.areas.includes(sel.id)) facs.add(f.id); });
+  }
+  return { areas, facs };
+}
+
+function draw() {
+  const ctx = cv.getContext('2d');
+  ctx.clearRect(0, 0, cv.width, cv.height);
+  ctx.save();
+  ctx.scale(DPR, DPR);
+
+  const dark   = isDark();
+  const active = selected || hovering;
+  const { areas: hlA, facs: hlF } = getHL(active);
+  const has = !!active;
+
+  const lineBase = dark ? 'rgba(160,158,150,0.22)' : 'rgba(80,80,70,0.16)';
+  const lineDim  = dark ? 'rgba(160,158,150,0.04)' : 'rgba(80,80,70,0.04)';
+
+  FACULTY.forEach(f => {
+    f.areas.forEach(id => {
+      const a   = areaMap[id];
+      const hl  = has && hlF.has(f.id) && hlA.has(id);
+      const dim = has && !hl;
+      ctx.beginPath();
+      ctx.moveTo(f.x, f.y);
+      ctx.lineTo(a.x, a.y);
+      ctx.strokeStyle = dim ? lineDim : hl ? a.color : lineBase;
+      ctx.lineWidth   = hl ? 2.5 : 0.8;
+      ctx.stroke();
+    });
+  });
+
+  AREAS.forEach(a => {
+    const dim = has && !hlA.has(a.id);
+    ctx.globalAlpha = dim ? 0.18 : 1;
+    ctx.beginPath();
+    ctx.rect(a.x - AW / 2, a.y - AH / 2, AW, AH);
+    ctx.fillStyle   = areaFill(a);
+    ctx.fill();
+    ctx.strokeStyle = a.color;
+    ctx.lineWidth   = 1.5;
+    ctx.stroke();
+
+    const fs = Math.max(10, W * 0.020);
+    ctx.font          = `600 ${fs}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+    ctx.textAlign     = 'center';
+    ctx.textBaseline  = 'middle';
+    ctx.fillStyle     = areaTextColor(a);
+    const lines = a.label.split(' ');
+    if (lines.length === 1) {
+      ctx.fillText(a.label, a.x, a.y);
+    } else {
+      ctx.fillText(lines[0], a.x, a.y - fs * 0.62);
+      ctx.fillText(lines[1], a.x, a.y + fs * 0.62);
+    }
+    ctx.globalAlpha = 1;
+  });
+
+  FACULTY.forEach(f => {
+    const hl  = has && hlF.has(f.id);
+    const dim = has && !hl;
+    ctx.globalAlpha = dim ? 0.15 : 1;
+    ctx.beginPath();
+    ctx.arc(f.x, f.y, FAC_R, 0, Math.PI * 2);
+    ctx.fillStyle   = rankFill(f.rank);
+    ctx.fill();
+    ctx.strokeStyle = rankColor(f.rank);
+    ctx.lineWidth   = hl ? 2.5 : 0.8;
+    ctx.stroke();
+
+    const fs = Math.max(9, W * 0.019);
+    ctx.font         = `500 ${fs}px -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif`;
+    ctx.textAlign    = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle    = rankColor(f.rank);
+    ctx.fillText(f.name, f.x, f.y);
+    ctx.globalAlpha  = 1;
+  });
+
+  ctx.restore();
+}
+
+function hitTest(ex, ey) {
+  for (const f of FACULTY) {
+    const d = Math.sqrt((ex - f.x) ** 2 + (ey - f.y) ** 2);
+    if (d < FAC_R + 4) return { type: 'fac', id: f.id, node: f };
+  }
+  for (const a of AREAS) {
+    if (Math.abs(ex - a.x) < AW / 2 + 4 && Math.abs(ey - a.y) < AH / 2 + 4)
+      return { type: 'area', id: a.id, node: a };
+  }
+  return null;
+}
+
+const info = document.getElementById('info');
+
+cv.addEventListener('mousemove', e => {
+  const r = cv.getBoundingClientRect();
+  hovering = hitTest(e.clientX - r.left, e.clientY - r.top);
+  cv.style.cursor = hovering ? 'pointer' : 'default';
+  if (!selected) draw();
+});
+
+cv.addEventListener('mouseleave', () => {
+  hovering = null;
+  if (!selected) draw();
+});
+
+cv.addEventListener('click', e => {
+  const r = cv.getBoundingClientRect();
+  const h = hitTest(e.clientX - r.left, e.clientY - r.top);
+  if (!h) {
+    selected = null;
+    info.textContent = 'Click a name or area to highlight connections';
+    draw();
+    return;
+  }
+  if (selected && selected.id === h.id) {
+    selected = null;
+    info.textContent = 'Click a name or area to highlight connections';
+  } else {
+    selected = h;
+    if (h.type === 'fac') {
+      const areaNames = h.node.areas.map(id => areaMap[id].label).join(', ');
+      const rank = h.node.rank === 'tenure' ? 'Tenure-line' : 'Teaching track';
+      info.innerHTML = `<strong>${h.node.name}</strong> — ${rank} &nbsp;·&nbsp; ${areaNames}`;
+    } else {
+      const facs = FACULTY.filter(f => f.areas.includes(h.id)).map(f => f.name).join(', ');
+      info.innerHTML = `<strong>${h.node.label}</strong> &nbsp;·&nbsp; ${facs}`;
+    }
+  }
+  draw();
+});
+
+window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () => draw());
+window.addEventListener('resize', () => { layout(); draw(); });
+
+layout();
+draw();
+</script>
+</body>
+</html>
