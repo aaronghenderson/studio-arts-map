@@ -1,4 +1,4 @@
-!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -101,15 +101,94 @@
     flex-shrink: 0;
   }
  
-  #canvas-wrap {
+  .main-wrap {
+    display: flex;
+    gap: 1rem;
     width: 100%;
-    max-width: 680px;
+    max-width: 820px;
+    align-items: flex-start;
+  }
+ 
+  #canvas-wrap {
+    flex: 1;
+    min-width: 0;
+    position: relative;
   }
  
   canvas {
     width: 100%;
     display: block;
     cursor: default;
+  }
+ 
+  #room-panel {
+    width: 130px;
+    flex-shrink: 0;
+    padding-top: 4px;
+  }
+ 
+  .room-label {
+    font-size: .65rem;
+    font-weight: 600;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--text3);
+    margin-bottom: .5rem;
+  }
+ 
+  .room-btn {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: var(--bg);
+    border: 0.5px solid var(--border);
+    border-radius: 5px;
+    padding: 5px 8px;
+    margin-bottom: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: border-color .12s, background .12s;
+  }
+ 
+  .room-btn:hover { background: var(--bg2); }
+ 
+  .room-btn.active {
+    border-color: currentColor;
+    background: var(--bg2);
+  }
+ 
+  .room-num {
+    font-size: .78rem;
+    font-weight: 600;
+    color: var(--text);
+    display: block;
+  }
+ 
+  .room-name {
+    font-size: .65rem;
+    color: var(--text2);
+    display: block;
+    margin-top: 1px;
+    line-height: 1.3;
+  }
+ 
+  #area-dialog {
+    display: none;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 140px;
+    height: 140px;
+    border-radius: 50%;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    z-index: 10;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-align: center;
   }
  
   #info {
@@ -166,8 +245,29 @@
   </div>
 </div>
  
-<div id="canvas-wrap">
-  <canvas id="cv"></canvas>
+<div class="main-wrap">
+  <div id="canvas-wrap">
+    <canvas id="cv"></canvas>
+    <div id="area-dialog">
+      <div style="text-align:center;padding:0 12px">
+        <div style="display:flex;justify-content:center;gap:16px;align-items:flex-end">
+          <div>
+            <div id="dialog-fac-count" style="font-size:1.7rem;font-weight:600;line-height:1"></div>
+            <div style="font-size:.65rem;color:var(--text2);margin-top:3px">faculty</div>
+          </div>
+          <div style="font-size:.9rem;color:var(--text3);padding-bottom:6px">/</div>
+          <div>
+            <div id="dialog-courses" style="font-size:1.7rem;font-weight:600;line-height:1"></div>
+            <div style="font-size:.65rem;color:var(--text2);margin-top:3px">sections</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+ 
+  <div id="room-panel">
+    <div class="room-label">Rooms</div>
+  </div>
 </div>
  
 <div id="info">Click a name or area to highlight connections</div>
@@ -209,7 +309,7 @@ const ALL_FACULTY = [
   { id:'piscitelli',  name:'Piscitelli',  rank:'teaching', areas:['sculpture','drawing','vt'] },
   { id:'andrew',      name:'Andrew',      rank:'teaching', areas:['digital','vt'] },
   { id:'bullock',     name:'Bullock',     rank:'teaching', areas:['sculpture'] },
-  { id:'perez',       name:'Perez',       rank:'teaching', areas:['sculpture','drawing','vt'] },
+  { id:'perez',       name:'Perez',       rank:'teaching', areas:['sculpture','vt'] },
   { id:'taoka',       name:'Taoka',       rank:'teaching', areas:['support'] },
   { id:'lemon',       name:'Lemon',       rank:'teaching', areas:['painting','drawing'] },
 ];
@@ -219,6 +319,31 @@ let FACULTY = ALL_FACULTY;
  
 const areaMap = {};
 AREAS.forEach(a => areaMap[a.id] = a);
+ 
+const AREA_DATA = {
+  vt:          { courses: 6 },
+  digital:     { courses: 4 },
+  photo:       { courses: 4 },
+  practical:   { courses: 1 },
+  sculpture:   { courses: 5 },
+  printmaking: { courses: 1 },
+  drawing:     { courses: 6 },
+  painting:    { courses: 6 },
+  support:     { courses: null },
+};
+ 
+const ROOMS = [
+  { id:'b5',  num:'B5',  name:'Wood Shop',            areas:['sculpture','support'] },
+  { id:'b6',  num:'B6',  name:'Sculpture Studio',     areas:['sculpture'] },
+  { id:'b7',  num:'B7',  name:'Digital Fab Studio',   areas:['digital','sculpture','support'] },
+  { id:'b15', num:'B15', name:'Drawing Studio',       areas:['drawing'] },
+  { id:'b23', num:'B23', name:'Print Annex',          areas:['digital','photo'] },
+  { id:'b34', num:'B34', name:'Painting Studio',      areas:['painting'] },
+  { id:'b40', num:'B40', name:'Etching Studio',       areas:['printmaking'] },
+  { id:'b41', num:'B41', name:'Screen Print Studio',  areas:['printmaking'] },
+  { id:'b42', num:'B42', name:'Visual Thinking Studio', areas:['vt','practical'] },
+  { id:'b43', num:'B43', name:'Digital Studio',         areas:['photo','digital'] },
+];
  
 const DEG = Math.PI / 180;
 const cv  = document.getElementById('cv');
@@ -316,12 +441,15 @@ function layout() {
   });
 }
  
-let selected = null, hovering = null;
+let selected = null, hovering = null, selectedRoom = null;
  
 function getHL(sel) {
   if (!sel) return { areas: new Set(), facs: new Set() };
   const areas = new Set(), facs = new Set();
-  if (sel.type === 'fac') {
+  if (sel.type === 'room') {
+    sel.node.areas.forEach(id => areas.add(id));
+    FACULTY.forEach(f => { if (f.areas.some(id => areas.has(id))) facs.add(f.id); });
+  } else if (sel.type === 'fac') {
     facs.add(sel.id);
     sel.node.areas.forEach(id => areas.add(id));
   } else {
@@ -329,6 +457,50 @@ function getHL(sel) {
     FACULTY.forEach(f => { if (f.areas.includes(sel.id)) facs.add(f.id); });
   }
   return { areas, facs };
+}
+ 
+function renderRooms() {
+  const panel = document.getElementById('room-panel');
+  panel.innerHTML = '<div class="room-label">Rooms</div>';
+  ROOMS.forEach(r => {
+    const btn = document.createElement('button');
+    btn.className = 'room-btn' + (selectedRoom === r.id ? ' active' : '');
+    btn.innerHTML = `<span class="room-num">${r.num}</span><span class="room-name">${r.name}</span>`;
+    btn.addEventListener('click', () => {
+      if (selectedRoom === r.id) {
+        selectedRoom = null;
+        selected = null;
+        closeDialog();
+        document.getElementById('info').textContent = 'Click a name or area to highlight connections';
+      } else {
+        selectedRoom = r.id;
+        selected = { type: 'room', id: r.id, node: r };
+        const roomAreas = r.areas.map(id => areaMap[id].label.replace('|','/')).join(', ');
+        document.getElementById('info').innerHTML = `<strong>${r.num} ${r.name}</strong> &nbsp;·&nbsp; ${roomAreas}`;
+        showRoomDialog(r);
+      }
+      renderRooms();
+      draw();
+    });
+    panel.appendChild(btn);
+  });
+}
+ 
+function showRoomDialog(room) {
+  const hlAreas = new Set(room.areas);
+  const facs = FACULTY.filter(f => f.areas.some(id => hlAreas.has(id)));
+  const totalCourses = room.areas.reduce((s, id) => {
+    const d = AREA_DATA[id];
+    return s + (d && d.courses ? d.courses : 0);
+  }, 0);
+  const el = document.getElementById('area-dialog');
+  const firstAreaColor = areaMap[room.areas[0]]?.color || '#888';
+  el.style.borderColor = firstAreaColor;
+  document.getElementById('dialog-fac-count').textContent = facs.length;
+  document.getElementById('dialog-fac-count').style.color = firstAreaColor;
+  document.getElementById('dialog-courses').textContent = totalCourses;
+  document.getElementById('dialog-courses').style.color = firstAreaColor;
+  el.style.display = 'flex';
 }
  
 function draw() {
@@ -450,34 +622,61 @@ cv.addEventListener('click', e => {
   const h = hitTest(e.clientX - r.left, e.clientY - r.top);
   if (!h) {
     selected = null;
+    selectedRoom = null;
     info.textContent = 'Click a name or area to highlight connections';
+    closeDialog();
+    renderRooms();
     draw();
     return;
   }
   if (selected && selected.id === h.id) {
     selected = null;
+    selectedRoom = null;
     info.textContent = 'Click a name or area to highlight connections';
+    closeDialog();
   } else {
     selected = h;
+    selectedRoom = null;
     if (h.type === 'fac') {
+      closeDialog();
       const areaNames = h.node.areas.map(id => areaMap[id].label.replace('|','/')).join(', ');
       const rank = h.node.rank === 'tenure' ? 'Tenure-line' : 'Teaching track';
       info.innerHTML = `<strong>${h.node.name}</strong> — ${rank} &nbsp;·&nbsp; ${areaNames}`;
     } else {
-      const facs = FACULTY.filter(f => f.areas.includes(h.id)).map(f => f.name).join(', ');
-      info.innerHTML = `<strong>${h.node.label.replace('|','/')}</strong> &nbsp;·&nbsp; ${facs}`;
+      info.textContent = '';
+      showDialog(h.node);
     }
   }
+  renderRooms();
   draw();
 });
+ 
+function showDialog(area) {
+  const facs = FACULTY.filter(f => f.areas.includes(area.id));
+  const data = AREA_DATA[area.id];
+  const el = document.getElementById('area-dialog');
+  el.style.borderColor = area.color;
+  document.getElementById('dialog-fac-count').textContent = facs.length;
+  document.getElementById('dialog-fac-count').style.color = area.color;
+  document.getElementById('dialog-courses').textContent = data.courses !== null ? data.courses : '0';
+  document.getElementById('dialog-courses').style.color = area.color;
+  el.style.display = 'flex';
+}
+ 
+function closeDialog() {
+  document.getElementById('area-dialog').style.display = 'none';
+}
  
 function toggleRetiring() {
   showRetiring = !showRetiring;
   FACULTY = showRetiring ? ALL_FACULTY : ALL_FACULTY.filter(f => !f.retiring);
   selected = null;
+  selectedRoom = null;
   info.textContent = 'Click a name or area to highlight connections';
+  closeDialog();
   document.getElementById('retire-btn').textContent = showRetiring ? 'Hide retiring faculty' : 'Show retiring faculty';
   layout();
+  renderRooms();
   draw();
 }
  
@@ -485,7 +684,9 @@ window.matchMedia('(prefers-color-scheme:dark)').addEventListener('change', () =
 window.addEventListener('resize', () => { layout(); draw(); });
  
 layout();
+renderRooms();
 draw();
 </script>
 </body>
 </html>
+ 
