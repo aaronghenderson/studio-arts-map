@@ -462,9 +462,18 @@ function getHL(sel) {
 function renderRooms() {
   const panel = document.getElementById('room-panel');
   panel.innerHTML = '<div class="room-label">Rooms</div>';
+  const { areas: hlAreas } = getHL(selected);
+ 
   ROOMS.forEach(r => {
+    const isActive = selectedRoom === r.id;
+    const isHL = !isActive && selected && r.areas.some(id => hlAreas.has(id));
     const btn = document.createElement('button');
-    btn.className = 'room-btn' + (selectedRoom === r.id ? ' active' : '');
+    btn.className = 'room-btn' + (isActive ? ' active' : '');
+    const firstColor = areaMap[r.areas[0]]?.color || '#888';
+    if (isHL) {
+      btn.style.borderColor = firstColor;
+      btn.style.background = areaMap[r.areas[0]]?.fill || 'var(--bg2)';
+    }
     btn.innerHTML = `<span class="room-num">${r.num}</span><span class="room-name">${r.name}</span>`;
     btn.addEventListener('click', () => {
       if (selectedRoom === r.id) {
@@ -689,4 +698,3 @@ draw();
 </script>
 </body>
 </html>
- 
